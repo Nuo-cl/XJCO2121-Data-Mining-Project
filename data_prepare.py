@@ -66,6 +66,6 @@ if __name__ == "__main__":
     filtered_data = filter_multiple_label(data)
     
     # save pilot study data
-    save_processed_data(filtered_data, "./datasets/pilot_study/", number=100, use_number=True)
+    save_processed_data(filtered_data, "./datasets/pilot_study/", number=200, use_number=True)
     
     save_example_data(filtered_data, "./datasets/pilot_study/")

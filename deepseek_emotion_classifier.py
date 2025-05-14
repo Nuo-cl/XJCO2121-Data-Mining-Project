@@ -9,7 +9,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 import shutil
-from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, classification_report
+from sklearn.metrics import precision_recall_fscore_support
+import argparse
+# Import evaluation functions from evaluation_utils.py
+from evaluation_utils import evaluate_predictions
+# Import prompt generation functions
+from prompt_utils import prompt_templates
 
 # Load dataset
 def load_dataset(data_path, labels_path):
@@ -59,31 +64,6 @@ def load_example_data():
     print(f"Loaded {len(examples)} example items from {example_file}")
     return examples
 
-# Build prompt
-def build_prompt(batch_texts, examples):
-    """Build prompt to send to DeepSeek API"""
-    emotion_mapping = "Emotion mapping table:\n"
-    for emotion, idx in emotion_dict.items():
-        emotion_mapping += f"{emotion}: {idx}\n"
-    
-    examples_text = "Here are example data and their corresponding emotion labels:\n"
-    for ex in examples:
-        examples_text += f"Text: {ex['text']}\n"
-        examples_text += f"Label: {ex['label']}\n"
-        examples_text += "---\n"
-    
-    batch_data = "Please classify the following texts with their corresponding emotion labels:\n"
-    for i, text in enumerate(batch_texts):
-        batch_data += f"{i+1}. {text}\n"
-    
-    instruction = """You are a text emotion classification assistant. I will provide some texts, and you'll classify each text's emotion.
-Please strictly follow the format [number,number,...] for classification results, without any other explanation.
-In your response, the classification result section needs to be marked with %%% at the beginning and end."""
-    
-    prompt = f"{instruction}\n\n{emotion_mapping}\n\n{examples_text}\n\n{batch_data}\n\nPlease provide the results in the exact format [number,number,...] and use %%% as markers."
-    
-    return prompt
-
 # Call DeepSeek API using OpenAI library
 def call_deepseek_api(prompt):
     """Call DeepSeek API to get emotion classification results using OpenAI library"""
@@ -112,7 +92,7 @@ def call_deepseek_api(prompt):
                 raise
 
 # Parse API response, extract prediction results
-def parse_response(response_text):
+def parse_response(response_text, batch_texts):
     """Extract prediction results from API response"""
     # Find the part with %%% markers
     start_marker = "%%%"
@@ -127,34 +107,74 @@ def parse_response(response_text):
     
     result_text = response_text[start_idx + len(start_marker):end_idx].strip()
     
-    # Try to parse the result as a list of numbers
+    # Try to parse the result as a JSON object
     try:
-        # Handle potential format issues
-        result_text = result_text.replace(" ", "")
-        if result_text.startswith("[") and result_text.endswith("]"):
-            result_text = result_text[1:-1]
+        import json
+        predictions_dict = json.loads(result_text)
         
-        predictions = [int(x) for x in result_text.split(",")]
+        # Extract predictions in the same order as batch_texts
+        predictions = []
+        missing_texts = []
+        
+        for text in batch_texts:
+            if text in predictions_dict:
+                predictions.append(int(predictions_dict[text]))
+            else:
+                # Try with truncated text as key (in case of very long texts)
+                found = False
+                for key in predictions_dict.keys():
+                    # Check if text starts with key or key starts with text
+                    if text.startswith(key) or key.startswith(text):
+                        predictions.append(int(predictions_dict[key]))
+                        found = True
+                        break
+                
+                if not found:
+                    missing_texts.append(text)
+                    # Default to "neutral" category if text is missing
+                    predictions.append(emotion_dict.get("neutral", 27))
+        
+        if missing_texts:
+            print(f"Warning: {len(missing_texts)} texts were not found in the prediction results.")
+            if len(missing_texts) < 5:  # Only print a few examples
+                for text in missing_texts[:3]:
+                    print(f"  Missing text: '{text[:50]}...'")
+            else:
+                print("  Too many missing texts to display.")
+        
         return predictions
     except Exception as e:
-        print(f"Failed to parse prediction results: {e}")
+        print(f"Failed to parse prediction results as JSON: {e}")
         print(f"Original result text: {result_text}")
-        return None
+        
+        # Fallback: try to parse as the old format [num,num,...]
+        try:
+            # Handle potential format issues
+            result_text = result_text.replace(" ", "")
+            if result_text.startswith("[") and result_text.endswith("]"):
+                result_text = result_text[1:-1]
+            
+            predictions = [int(x) for x in result_text.split(",")]
+            print("Successfully parsed using fallback method.")
+            return predictions
+        except:
+            print("Fallback parsing also failed.")
+            return None
 
 # Call API with verification for batch size
-def call_api_with_verification(batch_texts, examples):
+def call_api_with_verification(batch_texts, examples, prompt_template):
     """Call API and verify that the number of predictions matches the batch size"""
     max_retries = 5
     for attempt in range(max_retries):
-        # Build prompt
-        prompt = build_prompt(batch_texts, examples)
+        # Build prompt using the selected template
+        prompt = prompt_template(batch_texts, examples, emotion_dict)
         
         # Call API
         print(f"API request attempt {attempt+1}/{max_retries}...")
         response = call_deepseek_api(prompt)
         
-        # Parse results
-        predictions = parse_response(response)
+        # Parse results with the new JSON format
+        predictions = parse_response(response, batch_texts)
         
         # Verify predictions count matches batch size
         if predictions is not None:
@@ -172,142 +192,74 @@ def call_api_with_verification(batch_texts, examples):
     print(f"Failed to get correct predictions after {max_retries} attempts.")
     return None
 
-# Calculate IoU (Intersection over Union) for each class
-def calculate_iou(pred_labels, true_labels, num_classes=28):
-    """Calculate IoU for each class"""
-    # Create one-hot encoded vectors for predictions and true labels
-    pred_one_hot = np.zeros((len(pred_labels), num_classes))
-    true_one_hot = np.zeros((len(true_labels), num_classes))
-    
-    for i, pred in enumerate(pred_labels):
-        pred_one_hot[i, pred] = 1
-    
-    for i, true in enumerate(true_labels):
-        true_one_hot[i, true] = 1
-    
-    # Calculate IoU for each class
-    iou_scores = {}
-    for class_idx in range(num_classes):
-        # Count true positives, false positives, and false negatives
-        intersection = np.logical_and(pred_one_hot[:, class_idx], true_one_hot[:, class_idx]).sum()
-        union = np.logical_or(pred_one_hot[:, class_idx], true_one_hot[:, class_idx]).sum()
-        
-        # Calculate IoU for this class (avoiding division by zero)
-        if union > 0:
-            iou = intersection / union
-        else:
-            iou = 0.0
-        
-        # Store the IoU score with the emotion name
-        emotion_name = id_to_emotion.get(class_idx, f"Unknown-{class_idx}")
-        iou_scores[emotion_name] = float(iou)
-    
-    # Calculate mean IoU across all classes
-    iou_scores["mean_iou"] = float(np.mean(list(iou_scores.values())))
-    
-    return iou_scores
-
-# Evaluate predictions with multiple metrics
-def evaluate_predictions(predictions, references):
-    """Evaluate predictions using multiple metrics"""
-    results = {}
-    
-    # Get unique labels that actually appear in the data
-    unique_labels = sorted(set(references).union(set(predictions)))
-    
-    # Accuracy
-    accuracy_metric = evaluate.load("accuracy")
-    accuracy_results = accuracy_metric.compute(predictions=predictions, references=references)
-    results["accuracy"] = accuracy_results["accuracy"]
-    
-    # Precision, Recall, F1 Score - with zero_division=0 to handle warnings
-    precision, recall, f1, support = precision_recall_fscore_support(
-        references, predictions, average="macro", zero_division=0,
-        labels=unique_labels  # Only use labels that appear in the data
-    )
-    results["precision"] = float(precision)
-    results["recall"] = float(recall)
-    results["f1"] = float(f1)
-    
-    # Per-class precision, recall, and F1
-    per_class_precision, per_class_recall, per_class_f1, _ = precision_recall_fscore_support(
-        references, predictions, average=None, zero_division=0,
-        labels=unique_labels  # Only use labels that appear in the data
-    )
-    
-    # Add per-class metrics
-    class_metrics = {}
-    for i, label in enumerate(unique_labels):
-        emotion_name = id_to_emotion.get(label, f"Unknown-{label}")
-        class_metrics[emotion_name] = {
-            "precision": float(per_class_precision[i]),
-            "recall": float(per_class_recall[i]),
-            "f1": float(per_class_f1[i])
-        }
-    results["class_metrics"] = class_metrics
-    
-    # IoU scores - make sure to only calculate for labels that appear
-    iou_scores = calculate_iou(predictions, references, num_classes=max(unique_labels) + 1)
-    # Filter IoU scores to only include emotions that appear in the data
-    filtered_iou_scores = {}
-    for label in unique_labels:
-        emotion_name = id_to_emotion.get(label, f"Unknown-{label}")
-        if emotion_name in iou_scores:
-            filtered_iou_scores[emotion_name] = iou_scores[emotion_name]
-    # Add mean IoU
-    filtered_iou_scores["mean_iou"] = float(np.mean(list(filtered_iou_scores.values())))
-    results["iou_scores"] = filtered_iou_scores
-    
-    # Confusion Matrix (store as list of lists for JSON serialization)
-    cm = confusion_matrix(references, predictions, labels=unique_labels).tolist()
-    results["confusion_matrix"] = cm
-    
-    # Get emotion names for labels that appear in the data
-    present_emotion_names = [id_to_emotion.get(label, f"Unknown-{label}") for label in unique_labels]
-    
-    # Classification report
-    try:
-        report = classification_report(
-            references, 
-            predictions,
-            labels=unique_labels,  # Explicitly specify which labels to include
-            target_names=present_emotion_names,  # Use names only for labels that appear
-            output_dict=True,
-            zero_division=0  # Handle division by zero gracefully
-        )
-        results["classification_report"] = report
-    except Exception as e:
-        print(f"Warning: Could not generate classification report: {e}")
-        results["classification_report"] = {"error": str(e)}
-    
-    # Add metadata about the evaluation
-    results["metadata"] = {
-        "num_unique_labels": len(unique_labels),
-        "labels_present": unique_labels,
-        "total_samples": len(predictions)
-    }
-    
-    return results
-
-# Create result directory with timestamp
-def create_result_directory():
-    """Create a directory with timestamp for storing results"""
+# Create result directory with prompt type and batch size
+def create_result_directory(prompt_type, batch_size):
+    """Create a directory for storing results based on prompt type and batch size"""
     # Create base directory if it doesn't exist
     base_dir = Path("./result")
     base_dir.mkdir(exist_ok=True)
     
-    # Create subdirectory with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    result_dir = base_dir / timestamp
+    # Create subdirectory with prompt type and batch size
+    dir_name = f"{prompt_type}_batchsize{batch_size}"
+    result_dir = base_dir / dir_name
+    
+    # Check if directory already exists, if so add timestamp to avoid overwriting
+    if result_dir.exists():
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dir_name = f"{prompt_type}_batchsize{batch_size}_{timestamp}"
+        result_dir = base_dir / dir_name
+    
     result_dir.mkdir(exist_ok=True)
     
     return result_dir
 
+# Parse command line arguments
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='DeepSeek Emotion Classification')
+    
+    # Add argument for prompt template selection
+    parser.add_argument(
+        '--prompt', 
+        type=str, 
+        default='basic',
+        choices=list(prompt_templates.keys()),
+        help=f'Prompt template to use. Available options: {", ".join(prompt_templates.keys())}'
+    )
+    
+    # Add argument for batch size
+    parser.add_argument(
+        '--batch-size',
+        type=int,
+        default=20,
+        help='Number of texts to process in each batch'
+    )
+    
+    # Add argument to display prompt and exit
+    parser.add_argument(
+        '--show-prompt',
+        action='store_true',
+        help='Show the prompt template and exit without making API calls'
+    )
+    
+    return parser.parse_args()
+
 # Main function
 def main():
-    # Create result directory
-    result_dir = create_result_directory()
+    # Parse command line arguments
+    args = parse_arguments()
+    # Select prompt template
+    prompt_template = prompt_templates[args.prompt]
+    print(f"Using prompt template: {args.prompt}")
+    
+    # Create result directory with prompt type and batch size
+    result_dir = create_result_directory(args.prompt, args.batch_size)
     print(f"Results will be saved to {result_dir}")
+    
+    # Save the prompt template name to the result directory
+    with open(result_dir / "prompt_template.txt", 'w') as f:
+        f.write(f"Prompt template: {args.prompt}\n")
+        f.write(f"Batch size: {args.batch_size}\n")
     
     # Load dataset
     print("Loading dataset...")
@@ -321,8 +273,19 @@ def main():
     print("Loading example data...")
     examples = load_example_data()
     
+    # If show-prompt flag is set, display an example prompt and exit
+    if args.show_prompt:
+        # Get a small subset of the dataset for display
+        sample_texts = dataset['text'][:5]
+        prompt = prompt_template(sample_texts, examples, emotion_dict)
+        print("\nExample prompt with 5 sample texts:")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80)
+        return
+    
     # Process data in batches
-    batch_size = 50
+    batch_size = args.batch_size
     all_predictions = []
     
     print(f"Starting batch processing, {batch_size} entries per batch")
@@ -332,7 +295,7 @@ def main():
         
         # Call API with verification and retry mechanism
         print(f"Processing batch {i//batch_size + 1}/{(len(dataset)-1)//batch_size + 1}...")
-        batch_predictions = call_api_with_verification(batch_texts, examples)
+        batch_predictions = call_api_with_verification(batch_texts, examples, prompt_template)
         
         if batch_predictions:
             all_predictions.extend(batch_predictions)
@@ -353,7 +316,7 @@ def main():
     if len(all_predictions) == len(dataset):
         # Evaluate with multiple metrics
         print("Evaluating predictions...")
-        results = evaluate_predictions(all_predictions, dataset['labels'])
+        results = evaluate_predictions(all_predictions, dataset['labels'], id_to_emotion)
         
         # Print summary of results
         print("\nEvaluation results summary:")
@@ -374,6 +337,7 @@ def main():
         with open(summary_path, 'w') as f:
             f.write("EMOTION CLASSIFICATION EVALUATION SUMMARY\n")
             f.write("=======================================\n\n")
+            f.write(f"Prompt template: {args.prompt}\n\n")
             f.write(f"Accuracy: {results['accuracy']:.4f}\n")
             f.write(f"Precision: {results['precision']:.4f}\n")
             f.write(f"Recall: {results['recall']:.4f}\n")

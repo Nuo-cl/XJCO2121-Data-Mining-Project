@@ -1,0 +1,2 @@
+Prompt template: rich_background
+Batch size: 100

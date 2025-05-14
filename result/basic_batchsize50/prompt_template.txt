@@ -1,0 +1,2 @@
+Prompt template: basic
+Batch size: 50

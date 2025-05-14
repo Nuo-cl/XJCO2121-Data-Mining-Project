@@ -1,0 +1,43 @@
+EMOTION CLASSIFICATION EVALUATION SUMMARY
+=======================================
+
+Prompt template: rich_background
+
+Accuracy: 0.3500
+Precision: 0.1652
+Recall: 0.0808
+F1 Score: 0.0930
+Mean IoU: 0.0578
+
+PER-CLASS METRICS (Top 5 by F1 Score):
+------------------------------------
+neutral:
+  Precision: 0.3812
+  Recall: 0.8026
+  F1 Score: 0.5169
+  IoU: 0.3486
+
+realization:
+  Precision: 1.0000
+  Recall: 0.3333
+  F1 Score: 0.5000
+  IoU: 0.3333
+
+amusement:
+  Precision: 0.5000
+  Recall: 0.2500
+  F1 Score: 0.3333
+  IoU: 0.2000
+
+gratitude:
+  Precision: 1.0000
+  Recall: 0.2000
+  F1 Score: 0.3333
+  IoU: 0.2000
+
+fear:
+  Precision: 0.5000
+  Recall: 0.2000
+  F1 Score: 0.2857
+  IoU: 0.1667
+

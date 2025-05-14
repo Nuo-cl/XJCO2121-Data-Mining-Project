@@ -1,0 +1,206 @@
+{
+  "accuracy": 0.335,
+  "precision": 0.3109549742005882,
+  "recall": 0.37296100044638053,
+  "f1": 0.30464300373365455,
+  "class_metrics": {
+    "admiration": {
+      "precision": 0.375,
+      "recall": 0.3333333333333333,
+      "f1": 0.35294117647058826
+    },
+    "amusement": {
+      "precision": 0.32,
+      "recall": 0.6666666666666666,
+      "f1": 0.43243243243243246
+    },
+    "anger": {
+      "precision": 0.46153846153846156,
+      "recall": 0.8571428571428571,
+      "f1": 0.6
+    },
+    "annoyance": {
+      "precision": 0.2,
+      "recall": 0.15384615384615385,
+      "f1": 0.17391304347826086
+    },
+    "approval": {
+      "precision": 0.5,
+      "recall": 0.25,
+      "f1": 0.3333333333333333
+    },
+    "caring": {
+      "precision": 0.25,
+      "recall": 0.2,
+      "f1": 0.2222222222222222
+    },
+    "confusion": {
+      "precision": 0.10526315789473684,
+      "recall": 0.6666666666666666,
+      "f1": 0.18181818181818182
+    },
+    "curiosity": {
+      "precision": 0.4,
+      "recall": 0.5,
+      "f1": 0.4444444444444444
+    },
+    "desire": {
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8
+    },
+    "disappointment": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "disapproval": {
+      "precision": 0.26666666666666666,
+      "recall": 0.36363636363636365,
+      "f1": 0.3076923076923077
+    },
+    "disgust": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "excitement": {
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "f1": 0.6666666666666666
+    },
+    "fear": {
+      "precision": 0.5714285714285714,
+      "recall": 0.8,
+      "f1": 0.6666666666666666
+    },
+    "gratitude": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6666666666666666
+    },
+    "joy": {
+      "precision": 0.16666666666666666,
+      "recall": 0.4,
+      "f1": 0.23529411764705882
+    },
+    "love": {
+      "precision": 0.6666666666666666,
+      "recall": 0.4444444444444444,
+      "f1": 0.5333333333333333
+    },
+    "nervousness": {
+      "precision": 0.3333333333333333,
+      "recall": 1.0,
+      "f1": 0.5
+    },
+    "optimism": {
+      "precision": 0.16666666666666666,
+      "recall": 0.25,
+      "f1": 0.2
+    },
+    "pride": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "realization": {
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "f1": 0.4
+    },
+    "relief": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "remorse": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "sadness": {
+      "precision": 0.14285714285714285,
+      "recall": 0.5,
+      "f1": 0.2222222222222222
+    },
+    "surprise": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "neutral": {
+      "precision": 0.6363636363636364,
+      "recall": 0.18421052631578946,
+      "f1": 0.2857142857142857
+    },
+    "Unknown-30": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "iou_scores": {
+    "admiration": 0.21428571428571427,
+    "amusement": 0.27586206896551724,
+    "anger": 0.42857142857142855,
+    "annoyance": 0.09523809523809523,
+    "approval": 0.2,
+    "caring": 0.125,
+    "confusion": 0.1,
+    "curiosity": 0.2857142857142857,
+    "desire": 0.6666666666666666,
+    "disappointment": 0.0,
+    "disapproval": 0.18181818181818182,
+    "disgust": 0.0,
+    "excitement": 0.5,
+    "fear": 0.5,
+    "gratitude": 0.5,
+    "joy": 0.13333333333333333,
+    "love": 0.36363636363636365,
+    "nervousness": 0.3333333333333333,
+    "optimism": 0.1111111111111111,
+    "pride": 0.0,
+    "realization": 0.25,
+    "relief": 0.0,
+    "remorse": 0.0,
+    "sadness": 0.125,
+    "surprise": 0.0,
+    "neutral": 0.16666666666666666,
+    "Unknown-30": 0.0,
+    "mean_iou": 0.20578656479039623
+  },
+  "metadata": {
+    "num_unique_labels": 27,
+    "labels_present": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      13,
+      14,
+      15,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      30
+    ],
+    "total_samples": 200
+  }
+}
