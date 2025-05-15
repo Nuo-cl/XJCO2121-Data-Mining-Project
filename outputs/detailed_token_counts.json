@@ -1,0 +1,119 @@
+{
+    "minimal": {
+        "20": {
+            "total_tokens": 6366,
+            "num_batches": 10,
+            "tokens_per_batch": [
+                628,
+                629,
+                625,
+                622,
+                667,
+                646,
+                584,
+                632,
+                611,
+                722
+            ],
+            "avg_tokens_per_batch": 636.6
+        },
+        "50": {
+            "total_tokens": 4811,
+            "num_batches": 4,
+            "tokens_per_batch": [
+                1179,
+                1214,
+                1158,
+                1260
+            ],
+            "avg_tokens_per_batch": 1202.75
+        },
+        "100": {
+            "total_tokens": 4292,
+            "num_batches": 2,
+            "tokens_per_batch": [
+                2134,
+                2158
+            ],
+            "avg_tokens_per_batch": 2146.0
+        }
+    },
+    "basic": {
+        "20": {
+            "total_tokens": 12976,
+            "num_batches": 10,
+            "tokens_per_batch": [
+                1289,
+                1290,
+                1286,
+                1283,
+                1328,
+                1307,
+                1245,
+                1293,
+                1272,
+                1383
+            ],
+            "avg_tokens_per_batch": 1297.6
+        },
+        "50": {
+            "total_tokens": 7455,
+            "num_batches": 4,
+            "tokens_per_batch": [
+                1840,
+                1875,
+                1819,
+                1921
+            ],
+            "avg_tokens_per_batch": 1863.75
+        },
+        "100": {
+            "total_tokens": 5614,
+            "num_batches": 2,
+            "tokens_per_batch": [
+                2795,
+                2819
+            ],
+            "avg_tokens_per_batch": 2807.0
+        }
+    },
+    "rich_background": {
+        "20": {
+            "total_tokens": 13886,
+            "num_batches": 10,
+            "tokens_per_batch": [
+                1380,
+                1381,
+                1377,
+                1374,
+                1419,
+                1398,
+                1336,
+                1384,
+                1363,
+                1474
+            ],
+            "avg_tokens_per_batch": 1388.6
+        },
+        "50": {
+            "total_tokens": 7819,
+            "num_batches": 4,
+            "tokens_per_batch": [
+                1931,
+                1966,
+                1910,
+                2012
+            ],
+            "avg_tokens_per_batch": 1954.75
+        },
+        "100": {
+            "total_tokens": 5796,
+            "num_batches": 2,
+            "tokens_per_batch": [
+                2886,
+                2910
+            ],
+            "avg_tokens_per_batch": 2898.0
+        }
+    }
+}
