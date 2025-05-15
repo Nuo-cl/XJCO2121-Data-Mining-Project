@@ -1,8 +1,7 @@
-torch
-torchvision
-torchaudio
+numpy
+pandas
+matplotlib
 transformers
 datasets
-accelerate
 evaluate
 sentencepiece
